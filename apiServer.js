@@ -189,7 +189,7 @@ app.post("/submitReview", function (req, res) {
   });
 });
 
-app.get("/  ", async (req, res) => {
+app.get("/reviews", async (req, res) => {
   try {
     const reviews = await reviewsCollection
       .aggregate([
