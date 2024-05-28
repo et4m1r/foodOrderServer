@@ -22,12 +22,14 @@ var userCollection;
 var orderCollection;
 var restaurantCollection;
 var menuItemCollection;
+var reviewsCollection;
 
 client.connect((err) => {
   userCollection = client.db("foodOrder").collection("users");
   orderCollection = client.db("foodOrder").collection("orders");
   restaurantCollection = client.db("foodOrder").collection("restaurants");
   menuItemCollection = client.db("foodOrder").collection("menuItems");
+  reviewsCollection = client.db("foodOrder").collection("reviews");
 
   // perform actions on the collection object
   console.log("Database up!\n");
@@ -164,6 +166,72 @@ app.post("/postUserData", function (req, res) {
       });
     }
   });
+});
+
+app.post("/submitReview", function (req, res) {
+  const restaurantId = ObjectId(req.body.restaurant_id);
+  const userId = ObjectId(req.body.user_id);
+
+  const reviewData = {
+    restaurant_id: restaurantId,
+    review: req.body.review,
+    user_id: userId,
+    date: new Date(),
+  };
+
+  reviewsCollection.insertOne(reviewData, function (err, result) {
+    if (err) {
+      console.log("Some error.. " + err + "\n");
+    } else {
+      console.log(JSON.stringify(req.body) + " has been submitted\n");
+      res.send(JSON.stringify(req.body));
+    }
+  });
+});
+
+app.get("/  ", async (req, res) => {
+  try {
+    const reviews = await reviewsCollection
+      .aggregate([
+        {
+          $lookup: {
+            from: "restaurants",
+            localField: "restaurant_id",
+            foreignField: "_id",
+            as: "restaurant",
+          },
+        },
+        {
+          $unwind: "$restaurant",
+        },
+        {
+          $lookup: {
+            from: "users",
+            localField: "user_id",
+            foreignField: "_id",
+            as: "user",
+          },
+        },
+        {
+          $unwind: "$user",
+        },
+        {
+          $project: {
+            _id: 1,
+            review: 1,
+            date: 1,
+            restaurantName: "$restaurant.name",
+            userName: { $concat: ["$user.firstName", " ", "$user.lastName"] },
+          },
+        },
+      ])
+      .toArray();
+
+    res.json(reviews);
+  } catch (error) {
+    console.error("Error fetching reviews:", error);
+    res.status(500).send("Internal Server Error");
+  }
 });
 
 app.listen(port, () => {
