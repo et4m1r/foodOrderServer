@@ -161,7 +161,7 @@ app.post("/postUserData", function (req, res) {
           res.status(500).send("Error inserting user data");
         } else {
           console.log(JSON.stringify(req.body) + " have been uploaded\n");
-          res.send(JSON.stringify(req.body));
+          res.send(req.body);
         }
       });
     }
